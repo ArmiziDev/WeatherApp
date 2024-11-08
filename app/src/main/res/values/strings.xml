@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">VisualCrossingWeatherApp</string>
+    <string name="apikey">996YPEAH3LC25A24KSTV3RPS3</string>
+    <string name="apilink">https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/</string>
+</resources>
