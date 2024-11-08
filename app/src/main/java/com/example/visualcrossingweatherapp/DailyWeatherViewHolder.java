@@ -34,10 +34,10 @@ public class DailyWeatherViewHolder extends RecyclerView.ViewHolder
         Description = binding.dailyDescriptionText;
         Precipitation = binding.dailyPrecipitaitonText;
         UVIndex = binding.dailyUVIndexText;
-        morningTemperature = binding.dailyMorningText;
-        afternoonTemperature = binding.dailyAfternoonText;
-        eveningTemperature = binding.dailyEveningText;
-        nightTemperature = binding.dailyNightText;
+        morningTemperature = binding.morningTempNumberText;
+        afternoonTemperature = binding.afternoonTempNumberText;
+        eveningTemperature = binding.eveningTempNumberText;
+        nightTemperature = binding.nightTempNumberText;
         image = binding.imageView;
     }
 }

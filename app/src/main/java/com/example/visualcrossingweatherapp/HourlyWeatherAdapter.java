@@ -42,18 +42,7 @@ public class HourlyWeatherAdapter extends RecyclerView.Adapter<HourlyWeatherView
     public void onBindViewHolder(@NonNull HourlyWeatherViewHolder holder, int position) {
         HourlyWeather weather = hourlyWeatherList.get(position);
 
-        String formattedTime = "";
-        SimpleDateFormat inputFormat = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
-        SimpleDateFormat outputFormat = new SimpleDateFormat("h:mm a", Locale.getDefault());
-        try {
-            Date date = inputFormat.parse(weather.datetime);
-            if (date != null) {
-                formattedTime = outputFormat.format(date);
-            }
-        } catch (ParseException e) {
-            e.printStackTrace();
-        }
-
+        String formattedTime = DateFormatter.formatTime(weather.datetimeEpoch);
         holder.timeText.setText(formattedTime);
 
         String temperature;
@@ -67,11 +56,8 @@ public class HourlyWeatherAdapter extends RecyclerView.Adapter<HourlyWeatherView
         }
         holder.tempText.setText(temperature);
         holder.descText.setText(weather.conditions);
-        int iconId = mainActivity.getResources().getIdentifier(weather.icon_name, "drawable", mainActivity.getPackageName());
-        if (iconId != 0)
-        {
-            holder.weatherImage.setImageResource(iconId);
-        }
+
+        IconMapper.setIcon(holder.weatherImage, weather.icon_name);
     }
 
     @Override

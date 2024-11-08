@@ -4,6 +4,8 @@ import java.io.Serializable;
 import java.util.ArrayList;
 
 public class DailyWeather implements Serializable {
+
+    public int datetimeEpoch;
     public double temp_f;
     public double temp_c;
     public double feelslike_f;
@@ -29,11 +31,12 @@ public class DailyWeather implements Serializable {
 
     public ArrayList<HourlyWeather> hourlyWeatherList = new ArrayList<>();
 
-    public DailyWeather(double temp_f, double feelslike_f, double tempmax, double tempmin,
+    public DailyWeather(int datetimeEpoch, double temp_f, double feelslike_f, double tempmax, double tempmin,
                         double humidity, double visibility, double windgust, double windspeed,
                         int cloudcover, int winddir, int precipprob, int UVIndex, String conditions, String description,
                         String icon, String sunrise, String sunset)
     {
+        this.datetimeEpoch = datetimeEpoch;
         this.temp_f = temp_f;
         this.temp_c = (int)((temp_f - 32) * (5.0/9.0));
         this.feelslike_f = feelslike_f;

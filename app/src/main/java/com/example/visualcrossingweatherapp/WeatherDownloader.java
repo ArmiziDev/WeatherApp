@@ -1,6 +1,5 @@
 package com.example.visualcrossingweatherapp;
 
-import android.content.Context;
 import android.net.Uri;
 import android.util.Log;
 
@@ -46,10 +45,10 @@ public class WeatherDownloader
                 new Response.Listener<JSONObject>() {
                     @Override
                     public void onResponse(JSONObject response) {
-                        ArrayList<HourlyWeather> hourlyWeatherList = hourlyWeatherJsonParse(response);
-                        ArrayList<DailyWeather> dailyWeatherList = dailyWeatherJsonParse(response);
-                        activity.updateHourlyWeather(hourlyWeatherList); // update recycler view
-                        activity.updateDailyWeather(dailyWeatherList);
+                        Location location = LocationJsonParse(response);
+                        ArrayList<DailyWeather> WeatherList = WeatherJsonParse(response);
+                        activity.setLocation(location);
+                        activity.updateWeather(WeatherList);
                     }
                 },
                 new Response.ErrorListener() {
@@ -64,44 +63,27 @@ public class WeatherDownloader
         queue.add(request);
     }
 
-    private static ArrayList<HourlyWeather> hourlyWeatherJsonParse(JSONObject response)
+    private static Location LocationJsonParse(JSONObject response)
     {
-        ArrayList<HourlyWeather> hourlyWeatherList = new ArrayList<>();
-
+        double latititude, longitude;
+        String resolvedAddress;
         try {
-            // Access the "days" array
-            JSONArray daysArray = response.getJSONArray("days");
-            if (daysArray.length() > 0) {
-                // Use the first day for hourly data
-                JSONObject firstDay = daysArray.getJSONObject(0);
-                JSONArray hoursArray = firstDay.getJSONArray("hours");
-
-                // Loop through the hourly data
-                for (int i = 0; i < hoursArray.length(); i++) {
-                    JSONObject hourData = hoursArray.getJSONObject(i);
-
-                    // Parse the relevant fields
-                    String datetime = hourData.getString("datetime");
-                    String datetimeEpoch = hourData.getString("datetimeEpoch");
-                    int temp = (int)hourData.getDouble("temp");
-                    int feelslike = (int)hourData.getDouble("feelslike");
-                    String conditions = hourData.getString("conditions");
-                    String icon = hourData.getString("icon");
-
-                    // Create an HourlyWeather object and add it to the list
-                    HourlyWeather hourlyWeather = new HourlyWeather(datetime, datetimeEpoch, temp, feelslike, conditions, icon);
-                    hourlyWeatherList.add(hourlyWeather);
-                }
-            }
+            latititude = response.getDouble("latitude");
+            longitude = response.getDouble("longitude");
+            resolvedAddress = response.getString("resolvedAddress");
         } catch (JSONException e) {
             e.printStackTrace();
+            latititude = 0;
+            longitude = 0;
+            resolvedAddress = "No Network Connection,";
         }
 
-        return hourlyWeatherList;
+        return new Location(resolvedAddress, latititude, longitude);
     }
 
-    private static ArrayList<DailyWeather> dailyWeatherJsonParse(JSONObject response) {
+    private static ArrayList<DailyWeather> WeatherJsonParse(JSONObject response) {
         ArrayList<DailyWeather> dailyWeatherList = new ArrayList<>();
+        ArrayList<HourlyWeather> hourlyWeatherList = new ArrayList<>();
 
         try {
             // Access the "days" array from the response
@@ -109,9 +91,11 @@ public class WeatherDownloader
 
             // Loop through each day object in the "days" array
             for (int i = 0; i < daysArray.length(); i++) {
+                hourlyWeatherList.clear();
                 JSONObject dayData = daysArray.getJSONObject(i);
 
                 // Parse required fields from each day object
+                int datetimeEpoch = dayData.getInt("datetimeEpoch");
                 double temp = dayData.getDouble("temp");
                 double feelslike = dayData.getDouble("feelslike");
                 double tempmax = dayData.getDouble("tempmax");
@@ -132,12 +116,32 @@ public class WeatherDownloader
 
                 // Create a DailyWeather object
                 DailyWeather dailyWeather = new DailyWeather(
-                        temp, feelslike, tempmax, tempmin, humidity, visibility,
+                        datetimeEpoch, temp, feelslike, tempmax, tempmin, humidity, visibility,
                         windgust, windspeed, cloudcover, winddir, precipprob, uvIndex,
                         conditions, description, icon, sunrise, sunset
                 );
 
-                // Add the object to the list
+                JSONArray hoursArray = dayData.getJSONArray("hours");
+
+                // Loop through the hourly data
+                for (int j = 0; j < hoursArray.length(); j++) {
+                    JSONObject hourData = hoursArray.getJSONObject(j);
+
+                    // Parse the relevant fields
+                    String dailydatetime = hourData.getString("datetime");
+                    int dailydatetimeEpoch = hourData.getInt("datetimeEpoch");
+                    int dailytemp = (int)hourData.getDouble("temp");
+                    int dailyfeelslike = (int)hourData.getDouble("feelslike");
+                    String dailyconditions = hourData.getString("conditions");
+                    String dailyicon = hourData.getString("icon");
+
+                    // Create an HourlyWeather object and add it to the list
+                    HourlyWeather hourlyWeather = new HourlyWeather(dailydatetime, dailydatetimeEpoch, dailytemp, dailyfeelslike, dailyconditions, dailyicon);
+                    hourlyWeatherList.add(hourlyWeather);
+                }
+                // give the daily weather its hourly weather list
+                dailyWeather.setHourlyWeatherList(hourlyWeatherList);
+                // daily weather
                 dailyWeatherList.add(dailyWeather);
             }
         } catch (JSONException e) {

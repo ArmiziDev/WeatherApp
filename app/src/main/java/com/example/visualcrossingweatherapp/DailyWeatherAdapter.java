@@ -9,7 +9,10 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.visualcrossingweatherapp.databinding.DailyWeatherBinding;
 import com.squareup.picasso.Picasso;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.Locale;
 
 public class DailyWeatherAdapter extends RecyclerView.Adapter<DailyWeatherViewHolder>
 {
@@ -41,7 +44,19 @@ public class DailyWeatherAdapter extends RecyclerView.Adapter<DailyWeatherViewHo
         holder.Description.setText(weather.description);
         holder.Precipitation.setText("(" + weather.precipprob + "% precip.)");
         holder.UVIndex.setText("UVIndex: " + weather.UVIndex);
-        //holder.morningTemperature.setText();
+
+        String morning_temp = (unit_f) ? String.format("%d°F", (int)weather.hourlyWeatherList.get(8).temp_f) : String.format("%d°C", (int)weather.hourlyWeatherList.get(8).temp_c);
+        String afternoon_temp = (unit_f) ? String.format("%d°F", (int)weather.hourlyWeatherList.get(13).temp_f) : String.format("%d°C", (int)weather.hourlyWeatherList.get(13).temp_c);
+        String evening_temp = (unit_f) ? String.format("%d°F", (int)weather.hourlyWeatherList.get(17).temp_f) : String.format("%d°C", (int)weather.hourlyWeatherList.get(17).temp_c);
+        String night_temp = (unit_f) ? String.format("%d°F", (int)weather.hourlyWeatherList.get(23).temp_f) : String.format("%d°C", (int)weather.hourlyWeatherList.get(23).temp_f);
+
+        holder.morningTemperature.setText(morning_temp);
+        holder.afternoonTemperature.setText(afternoon_temp);
+        holder.eveningTemperature.setText(evening_temp);
+        holder.nightTemperature.setText(night_temp);
+
+        String formattedDate = DateFormatter.formatDate(weather.datetimeEpoch, " EEEE, MM/dd");
+        holder.Date.setText(formattedDate);
 
         IconMapper.setIcon(holder.image, weather.icon);
     }

@@ -38,6 +38,8 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private ChartMaker chartMaker;
 
+    private Location location;
+
     private final Date currentDate = new Date();
 
     DailyWeather current_weather;
@@ -71,7 +73,20 @@ public class MainActivity extends AppCompatActivity {
         chartMaker = new ChartMaker(this, binding);
 
         WeatherDownloader.getWeather(this, "Chicago, IL");
+    }
 
+    public void setLocation(Location location)
+    {
+        this.location = location;
+    }
+
+    public void updateWeather(ArrayList<DailyWeather> weatherList)
+    {
+        if (!weatherList.isEmpty())
+        {
+            updateHourlyWeather(weatherList.get(0).hourlyWeatherList);
+            updateDailyWeather(weatherList);
+        }
     }
 
     public void updateHourlyWeather(ArrayList<HourlyWeather> hourlyWeather)
@@ -140,6 +155,10 @@ public class MainActivity extends AppCompatActivity {
             binding.sunsetText.setText("Sunset: " + formattedTime);
 
             IconMapper.setIcon(binding.weatherIcon, current_weather.icon);
+
+            String city = location.resolvedAddress.split(",")[0].trim();
+            String resolvedAddress = city + ", " + DateFormatter.getCurrentFormattedTime("EEE MMM dd h:mm a");
+            binding.resolvedAddress.setText(resolvedAddress);
         }
     }
 

@@ -8,7 +8,7 @@ import java.io.Serializable;
 public class HourlyWeather implements Serializable
 {
     public String datetime;
-    public String datetimeEpoch;
+    public int datetimeEpoch;
     public double temp_f;
     public double temp_c;
     public double feelslike;
@@ -16,7 +16,7 @@ public class HourlyWeather implements Serializable
     public String icon_name;
 
     // Constructor
-    public HourlyWeather(String datetime, String datetimeEpoch,int temp, int feelslike, String conditions, String icon_name) {
+    public HourlyWeather(String datetime, int datetimeEpoch,int temp, int feelslike, String conditions, String icon_name) {
         this.datetime = datetime;
         this.datetimeEpoch = datetimeEpoch;
         this.temp_f = temp;
