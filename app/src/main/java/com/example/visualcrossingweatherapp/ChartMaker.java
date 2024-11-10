@@ -37,7 +37,6 @@ public class ChartMaker {
     private static final SimpleDateFormat sdf3 =
             new SimpleDateFormat("MMMM dd, yyyy h:mm a", Locale.US);
 
-    //private TreeMap<String, Double> temperatureData;
     private final MainActivity mainActivity;
     private final ActivityMainBinding binding;
 
@@ -54,7 +53,6 @@ public class ChartMaker {
         setupYAxis(binding.tempGraph);
         setData(binding.tempGraph, temperatureData);
 
-        //binding.resolvedAddress.setText(sdf3.format(new Date(timeMillisIn)));
         binding.tempGraph.setVisibility(View.VISIBLE);
     }
 
@@ -129,13 +127,14 @@ public class ChartMaker {
             @Override
             public void onValueSelected(Entry e, Highlight h)
             {
-                //mainActivity.displayChartTemp(e.getX(), e.getY());
+                String temperature = (mainActivity.unit_f) ? String.format("%d°F", (int)e.getY()) : String.format("%d°C", (int)e.getY());
+                binding.temperatureText.setText(temperature);
             }
 
             @Override
             public void onNothingSelected()
             {
-
+                mainActivity.resetTemperature();
             }
         });
     }

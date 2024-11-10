@@ -44,6 +44,8 @@ dependencies {
     implementation(libs.mpandroidchart)
     implementation(libs.volley)
     implementation(libs.picasso)
+    implementation(libs.play.services.location)
+    implementation(libs.swiperefreshlayout)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)

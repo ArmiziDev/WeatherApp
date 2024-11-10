@@ -10,8 +10,10 @@ public class DailyWeather implements Serializable {
     public double temp_c;
     public double feelslike_f;
     public double feelslike_c;
-    public double tempmax;
-    public double tempmin;
+    public double tempmax_f;
+    public double tempmin_f;
+    public double tempmin_c;
+    public double tempmax_c;
     public double humidity;
     public double visibility;
     public double windgust;
@@ -41,8 +43,10 @@ public class DailyWeather implements Serializable {
         this.temp_c = (int)((temp_f - 32) * (5.0/9.0));
         this.feelslike_f = feelslike_f;
         this.feelslike_c = (int)((feelslike_f - 32) * (5.0/9.0));
-        this.tempmax = tempmax;
-        this.tempmin = tempmin;
+        this.tempmax_f = tempmax;
+        this.tempmin_f = tempmin;
+        this.tempmax_c = (int)((tempmax_f - 32) * (5.0/9.0));
+        this.tempmin_c = (int)((tempmin_f - 32) * (5.0/9.0));
         this.precipprob = precipprob;
         this.UVIndex = UVIndex;
         this.conditions = conditions;

@@ -11,6 +11,8 @@ mpandroidchart = "v3.1.0"
 volley = "1.2.1"
 picasso = "2.71828"
 glide = "5.0.0-rc01"
+playServicesLocation = "21.3.0"
+swiperefreshlayout = "1.2.0-alpha01"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -24,6 +26,8 @@ mpandroidchart = { group = "com.github.PhilJay", name = "MPAndroidChart", versio
 volley = { group = "com.android.volley", name = "volley", version.ref = "volley" }
 picasso = { group = "com.squareup.picasso", name = "picasso", version.ref = "picasso" }
 glide = { group = "com.github.bumptech.glide", name = "glide", version.ref = "glide" }
+play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
+swiperefreshlayout = { group = "androidx.swiperefreshlayout", name = "swiperefreshlayout", version.ref = "swiperefreshlayout" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

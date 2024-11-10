@@ -1,14 +1,18 @@
 package com.example.visualcrossingweatherapp;
 
 import android.content.Intent;
+import android.location.Address;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.InputType;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.EditText;
+import android.location.Location;
 
 import androidx.activity.EdgeToEdge;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
@@ -18,18 +22,14 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.visualcrossingweatherapp.databinding.ActivityMainBinding;
-import com.squareup.picasso.Picasso;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.Locale;
+import java.util.List;
 import java.util.TreeMap;
 
 public class MainActivity extends AppCompatActivity {
 
-    private ActivityMainBinding binding;
+    public ActivityMainBinding binding;
 
     TreeMap<String, Double> timeTempValues = new TreeMap<>();
     private final ArrayList<HourlyWeather> hourlyWeatherList = new ArrayList<>();
@@ -38,11 +38,9 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private ChartMaker chartMaker;
 
-    private Location location;
-
-    private final Date currentDate = new Date();
-
-    DailyWeather current_weather;
+    private WeatherLocation weatherLocation;
+    private Alerts alerts;
+    private CurrentConditions currentConditions;
 
     public boolean unit_f = true;
 
@@ -72,16 +70,52 @@ public class MainActivity extends AppCompatActivity {
 
         chartMaker = new ChartMaker(this, binding);
 
-        WeatherDownloader.getWeather(this, "Chicago, IL");
+        // Request the current location
+        LocationHelper.getCurrentLocation(this, new LocationHelper.LocationCallback() {
+            @Override
+            public void onLocationResult(List<Address> addresses) {
+                // use addresses to find location
+                String cityName = addresses.get(0).getLocality() + ", " + addresses.get(0).getAdminArea();
+                Log.d(TAG, "onLocationResult: " + cityName);
+                EnterLocation(cityName);
+            }
+
+            @Override
+            public void onFailure(String errorMessage) {
+                Log.d(TAG, "onFailure: " + errorMessage);
+            }
+        });
+
+        binding.swipeRefresh.setOnRefreshListener(this::refreshWeather);
     }
 
-    public void setLocation(Location location)
+    public void refreshWeather()
     {
-        this.location = location;
+        if (weatherLocation != null)
+        {
+            Log.d(TAG, "refreshWeather: Refreshing Weather for " + weatherLocation.resolvedAddress);
+            WeatherDownloader.getWeather(this, weatherLocation.resolvedAddress);
+        }
     }
 
-    public void updateWeather(ArrayList<DailyWeather> weatherList)
+    public void setLocation(WeatherLocation weatherLocation)
     {
+        this.weatherLocation = weatherLocation;
+    }
+
+    public void setCurrentConditions(CurrentConditions currentConditions)
+    {
+        this.currentConditions = currentConditions;
+    }
+
+    public void setAlerts(Alerts alerts)
+    {
+        this.alerts = alerts;
+    }
+
+    public void setWeatherList(ArrayList<DailyWeather> weatherList)
+    {
+        binding.swipeRefresh.setRefreshing(false); // This stops the busy-circle
         if (!weatherList.isEmpty())
         {
             updateHourlyWeather(weatherList.get(0).hourlyWeatherList);
@@ -92,20 +126,24 @@ public class MainActivity extends AppCompatActivity {
     public void updateHourlyWeather(ArrayList<HourlyWeather> hourlyWeather)
     {
         this.hourlyWeatherList.clear();
-        Date currentDate = new Date();
-        int currentHour = currentDate.getHours();
+        long currentEpoch = System.currentTimeMillis() / 1000;
         for (HourlyWeather weather : hourlyWeather) {
-            int weatherHour = Integer.parseInt(weather.datetime.split(":")[0]);
-            if (weatherHour >= currentHour) {
+            if (currentEpoch < weather.datetimeEpoch)
+            {
                 this.hourlyWeatherList.add(weather);
             }
         }
-
         hourlyWeatherAdapter.notifyDataSetChanged();
 
         timeTempValues = createTimeTempValues(hourlyWeather);
         chartMaker.makeChart(timeTempValues, System.currentTimeMillis());
         binding.loadingHourlyWeather.setVisibility(View.INVISIBLE);
+    }
+
+    public void resetTemperature()
+    {
+        String temperature = (unit_f) ? String.format("%d°F", (int)currentConditions.temp_f) : String.format("%d°C", (int)currentConditions.temp_c);
+        binding.temperatureText.setText(temperature);
     }
 
     public void updateDailyWeather(ArrayList<DailyWeather> dailyWeather)
@@ -115,48 +153,32 @@ public class MainActivity extends AppCompatActivity {
 
         if(!dailyWeather.isEmpty())
         {
-            current_weather = dailyWeather.get(0);
+            // Set Colors
+            ColorMaker.setColorGradient(this, binding.main, currentConditions.temp_f);
+            ColorMaker.setToolbarColor(this, binding.iconBar, currentConditions.temp_f);
+            ColorMaker.setRecyclerColor(this, binding.hourlyWeatherRecycler, currentConditions.temp_f);
 
-            String temperature = (unit_f) ? String.format("%d°F", (int)current_weather.temp_f) : String.format("%d°C", (int)current_weather.temp_c);
+            String temperature = (unit_f) ? String.format("%d°F", (int)currentConditions.temp_f) : String.format("%d°C", (int)currentConditions.temp_c);
             binding.temperatureText.setText(temperature);
-            String feelslike = (unit_f) ? String.format("%d°F", (int)current_weather.feelslike_f) : String.format("%d°C", (int)current_weather.feelslike_c);
+            String feelslike = (unit_f) ? String.format("%d°F", (int)currentConditions.feelslike_f) : String.format("%d°C", (int)currentConditions.feelslike_c);
             binding.feelsLikeText.setText("Feels Like " + feelslike);
             binding.weatherDescriptionText.setText(
-                    current_weather.conditions + " (" + current_weather.cloudcover + "% clouds)");
-            binding.humidityText.setText("Humidity: " + current_weather.humidity + "%");
-            binding.uvIndexText.setText("UV Index: " + current_weather.UVIndex);
-            binding.visibilityText.setText("Visibility: " + current_weather.visibility + " mi");
-            String windDirection = getWindDirection(current_weather.winddir);
+                    currentConditions.conditions + " (" + currentConditions.cloudcover + "% clouds)");
+            binding.humidityText.setText("Humidity: " + currentConditions.humidity + "%");
+            binding.uvIndexText.setText("UV Index: " + currentConditions.uvindex);
+            binding.visibilityText.setText("Visibility: " + currentConditions.visibility + " mi");
+            String windDirection = getWindDirection((int)currentConditions.winddir);
             binding.windDirectionText.setText(
-                    "Winds: " + windDirection + " at " + current_weather.windspeed +
-                            " mph gusting to " + current_weather.windgust + " mph"
+                    "Winds: " + windDirection + " at " + currentConditions.windspeed +
+                            " mph gusting to " + currentConditions.windgust + " mph"
             );
 
-            String formattedTime = "";
-            SimpleDateFormat inputFormat = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
-            SimpleDateFormat outputFormat = new SimpleDateFormat("h:mm a", Locale.getDefault());
-            try {
-                Date date = inputFormat.parse(current_weather.sunrise);
-                if (date != null) {
-                    formattedTime = outputFormat.format(date);
-                }
-            } catch (ParseException e) {
-                e.printStackTrace();
-            }
-            binding.sunriseText.setText("Sunrise: " + formattedTime);
-            try {
-                Date date = inputFormat.parse(current_weather.sunset);
-                if (date != null) {
-                    formattedTime = outputFormat.format(date);
-                }
-            } catch (ParseException e) {
-                e.printStackTrace();
-            }
-            binding.sunsetText.setText("Sunset: " + formattedTime);
+            binding.sunriseText.setText("Sunrise: " + DateFormatter.formatTime(currentConditions.sunriseEpoch, "h:mm a"));
+            binding.sunsetText.setText("Sunset: " + DateFormatter.formatTime(currentConditions.sunsetEpoch, "h:mm a"));
 
-            IconMapper.setIcon(binding.weatherIcon, current_weather.icon);
+            IconMapper.setIcon(binding.weatherIcon, currentConditions.icon);
 
-            String city = location.resolvedAddress.split(",")[0].trim();
+            String city = weatherLocation.resolvedAddress.split(",")[0].trim();
             String resolvedAddress = city + ", " + DateFormatter.getCurrentFormattedTime("EEE MMM dd h:mm a");
             binding.resolvedAddress.setText(resolvedAddress);
         }
@@ -181,32 +203,28 @@ public class MainActivity extends AppCompatActivity {
         } else if (windDir >= 292.5 && windDir < 337.5) {
             return  "NW";
         } else {
-            return "Unknown";
+            return "X";
         }
     }
 
     private void EnterLocation(String location)
     {
         Log.d(TAG, "EnterLocation: " + location);
+
+        WeatherDownloader.getWeather(this, location);
     }
 
     public void onEnterLocationClick(View v)
     {
-        // Single input value dialog
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
 
-        // Create an edittext and set it to be the builder's view
         final EditText et = new EditText(this);
         et.setInputType(InputType.TYPE_CLASS_TEXT);
         et.setGravity(Gravity.CENTER_HORIZONTAL);
         builder.setView(et);
 
-        //builder.setIcon(R.drawable.icon1);
-
-        // lambda can be used here (as is below)
         builder.setPositiveButton("OK", (dialog, id) -> EnterLocation(String.valueOf(et.getText())));
 
-        // lambda can be used here (as is below)
         builder.setNegativeButton("Cancel", (dialog, id) -> {});
 
         builder.setMessage(
@@ -226,9 +244,79 @@ public class MainActivity extends AppCompatActivity {
             Intent intent = new Intent(this, ForecastActivity.class);
             intent.putExtra("DailyWeatherList", dailyWeatherList);
             intent.putExtra("unit_f", unit_f);
+
+            String city = weatherLocation.resolvedAddress.split(",")[0].trim();
+            intent.putExtra("City", city);
             startActivity(intent);
         }
     }
+
+    public void onMapClick(View v)
+    {
+        if (currentConditions == null) return;
+        String location = String.valueOf(weatherLocation.latitude + ", " + weatherLocation.longitude);
+
+        Uri mapUri = Uri.parse("geo:" + location + "?q=" + weatherLocation.resolvedAddress);
+
+        Intent intent = new Intent(Intent.ACTION_VIEW, mapUri);
+
+        // Check if there is an app that can handle geo intents
+        if (intent.resolveActivity(getPackageManager()) != null) {
+            startActivity(intent);
+        } else {
+            makeErrorAlert("No Application found that handles ACTION_VIEW (geo) intents");
+        }
+    }
+
+    public void doShare(View v) {
+        if (currentConditions == null) return;
+
+        String main = "Weather for " + weatherLocation.resolvedAddress + "\n\n";
+
+        String forecast;
+        String now;
+        String winds;
+        String visibility;
+        if (unit_f)
+        {
+            forecast = "Forecast: " + currentConditions.conditions + " with a high of " +
+                    dailyWeatherList.get(0).tempmax_f + "°F and a low of " + dailyWeatherList.get(0).tempmin_f + "°F.\n\n";
+            now = currentConditions.temp_f + "°F, " + currentConditions.conditions + " (Feels like: " + currentConditions.feelslike_f + "°F)\n\n";
+            winds = "Winds: " + getWindDirection((int)currentConditions.winddir) + " at " + currentConditions.windspeed + " mph\n";
+            visibility = "Visibility: " + currentConditions.visibility + " mi \n";
+        } else {
+            forecast = "Forecast: " + currentConditions.conditions + " with a high of " +
+                    dailyWeatherList.get(0).tempmax_c + "°C and a low of " + dailyWeatherList.get(0).tempmin_c + "°C.\n\n";
+            now = currentConditions.temp_c + "°C, " + currentConditions.conditions + " (Feels like: " + currentConditions.feelslike_c + "°C)\n\n";
+            winds = "Winds: " + getWindDirection((int)currentConditions.winddir) + " at " + (currentConditions.windspeed * 1.609) + " kph\n";
+            visibility = "Visibility: " + currentConditions.visibility * 1.609 + " km \n";
+        }
+        String humidity = "Humdity: " + currentConditions.humidity + "%\n";
+        String uvindex = "UV Index: " + currentConditions.uvindex + "\n";
+        String sunrise = "Sunrise: " + DateFormatter.formatDate(currentConditions.sunriseEpoch, "h:mm a");
+        String sunset = "Sunset: " + DateFormatter.formatDate(currentConditions.sunsetEpoch, "h:mm a");
+
+        Intent sendIntent = new Intent();
+        sendIntent.setAction(Intent.ACTION_SEND);
+        sendIntent.putExtra(Intent.EXTRA_SUBJECT, main);
+        sendIntent.putExtra(Intent.EXTRA_TEXT,
+                main +
+                forecast +
+                now +
+                humidity +
+                winds +
+                uvindex +
+                sunrise +
+                sunset +
+                visibility
+                );
+        sendIntent.setType("text/plain");
+
+        Intent shareIntent = Intent.createChooser(sendIntent, "Share to...");
+        startActivity(shareIntent);
+
+    }
+
 
     public void changeUnitClick(View v)
     {
@@ -242,11 +330,11 @@ public class MainActivity extends AppCompatActivity {
             hourlyWeatherAdapter.notifyDataSetChanged();
         }
 
-        if (current_weather != null)
+        if (currentConditions != null)
         {
-            String temperature = (unit_f) ? String.format("%d°F", (int)current_weather.temp_f) : String.format("%d°C", (int)current_weather.temp_c);
+            String temperature = (unit_f) ? String.format("%d°F", (int)currentConditions.temp_f) : String.format("%d°C", (int)currentConditions.temp_c);
             binding.temperatureText.setText(temperature);
-            String feelslike = (unit_f) ? String.format("%d°F", (int)current_weather.feelslike_f) : String.format("%d°C", (int)current_weather.feelslike_c);
+            String feelslike = (unit_f) ? String.format("%d°F", (int)currentConditions.feelslike_f) : String.format("%d°C", (int)currentConditions.feelslike_c);
             binding.feelsLikeText.setText("Feels Like " + feelslike);
         }
     }
@@ -263,11 +351,77 @@ public class MainActivity extends AppCompatActivity {
 
     public void connectionError() {
         new AlertDialog.Builder(this)
-                .setTitle("Connection Error")
-                .setMessage("Unable to connect. Please check your internet connection and try again.")
+                .setTitle("No Internet Connection")
+                .setMessage("This app requires an internet connection to function properly. Please check your connection and try again.")
                 .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
                 .setIcon(android.R.drawable.ic_dialog_alert)
                 .show();
         binding.loadingHourlyWeather.setVisibility(View.INVISIBLE);
+    }
+
+    public void locationError(String location) {
+        new AlertDialog.Builder(this)
+                .setTitle("Location Error")
+                .setMessage("The specified location '" + location + "' could not be resolved. Please try a different location")
+                .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .show();
+        binding.loadingHourlyWeather.setVisibility(View.INVISIBLE);
+    }
+
+    public void dataError() {
+        new AlertDialog.Builder(this)
+                .setTitle("Weather Data Error")
+                .setMessage("There was an error retrieving the weather data. Please try again later.")
+                .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .show();
+        binding.loadingHourlyWeather.setVisibility(View.INVISIBLE);
+    }
+
+    public void resetLocation(View v)
+    {
+        LocationHelper.getCurrentLocation(this, new LocationHelper.LocationCallback() {
+            @Override
+            public void onLocationResult(List<Address> addresses) {
+                String cityName = addresses.get(0).getLocality() + ", " + addresses.get(0).getAdminArea();
+                Log.d(TAG, "onLocationResult: " + cityName);
+                EnterLocation(cityName);
+            }
+
+            @Override
+            public void onFailure(String errorMessage) {
+                Log.d(TAG, "onFailure: " + errorMessage);
+            }
+        });
+    }
+
+    private void makeErrorAlert(String msg) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage(msg);
+        builder.setTitle("App-resolving error");
+        builder.setPositiveButton("OK", null);
+        builder.create().show();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        LocationHelper.handlePermissionResult(requestCode, permissions, grantResults, this, () -> {
+            // Permission granted, request the location again
+            LocationHelper.getCurrentLocation(this, new LocationHelper.LocationCallback() {
+                @Override
+                public void onLocationResult(List<Address> addresses) {
+                    String cityName = addresses.get(0).getLocality() + ", " + addresses.get(0).getAdminArea();
+                    Log.d(TAG, "onLocationResult: " + cityName);
+                    EnterLocation(cityName);
+                }
+
+                @Override
+                public void onFailure(String errorMessage) {
+                    Log.d(TAG, "onFailure: " + errorMessage);
+                }
+            });
+        });
     }
 }

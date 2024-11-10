@@ -1,6 +1,5 @@
 package com.example.visualcrossingweatherapp;
 
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
 
@@ -9,11 +8,8 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.visualcrossingweatherapp.databinding.HourlyWeatherIconBinding;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.Locale;
+
 
 public class HourlyWeatherAdapter extends RecyclerView.Adapter<HourlyWeatherViewHolder> {
 
@@ -42,7 +38,7 @@ public class HourlyWeatherAdapter extends RecyclerView.Adapter<HourlyWeatherView
     public void onBindViewHolder(@NonNull HourlyWeatherViewHolder holder, int position) {
         HourlyWeather weather = hourlyWeatherList.get(position);
 
-        String formattedTime = DateFormatter.formatTime(weather.datetimeEpoch);
+        String formattedTime = DateFormatter.formatTime(weather.datetimeEpoch, "h:mm a");
         holder.timeText.setText(formattedTime);
 
         String temperature;

@@ -7,9 +7,6 @@ import android.window.OnBackInvokedDispatcher;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -26,6 +23,8 @@ public class ForecastActivity extends AppCompatActivity
     private ArrayList<DailyWeather> dailyWeatherList = new ArrayList<>();
     private DailyWeatherAdapter dailyWeatherAdapter;
     private RecyclerView recyclerView;
+
+    public boolean unit_f = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,12 +51,14 @@ public class ForecastActivity extends AppCompatActivity
         }
 
         dailyWeatherList = (ArrayList<DailyWeather>) getIntent().getSerializableExtra("DailyWeatherList");
-        boolean unit_f = getIntent().getBooleanExtra("unit_f", true);
+        unit_f = getIntent().getBooleanExtra("unit_f", true);
+        String city = getIntent().getStringExtra("City");
+        binding.titleText.setText(city + " 15-Day Forecast");
 
         if (!dailyWeatherList.isEmpty())
         {
             recyclerView = binding.dailyWeatherRecycler;
-            dailyWeatherAdapter = new DailyWeatherAdapter(unit_f, dailyWeatherList);
+            dailyWeatherAdapter = new DailyWeatherAdapter(this, dailyWeatherList);
             recyclerView.setAdapter(dailyWeatherAdapter);
             LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
             recyclerView.setLayoutManager(linearLayoutManager);

@@ -5,6 +5,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.visualcrossingweatherapp.databinding.DailyWeatherBinding;
@@ -12,6 +13,7 @@ import com.example.visualcrossingweatherapp.databinding.DailyWeatherBinding;
 
 public class DailyWeatherViewHolder extends RecyclerView.ViewHolder
 {
+    ConstraintLayout main;
     TextView Date;
     TextView Temperature;
     TextView Description;
@@ -29,6 +31,7 @@ public class DailyWeatherViewHolder extends RecyclerView.ViewHolder
         super(binding.getRoot());
         this.binding = binding;
 
+        main = binding.main;
         Date = binding.dayDateText;
         Temperature = binding.dailyTemperatureText;
         Description = binding.dailyDescriptionText;

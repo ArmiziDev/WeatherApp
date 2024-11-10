@@ -1,19 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+
+<androidx.swiperefreshlayout.widget.SwipeRefreshLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/swipe_refresh"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/green_bg"
-    tools:context=".MainActivity">
+    android:background="@drawable/green_bg" >
 
     <TextView
         android:id="@+id/resolvedAddress"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Chicago, Sat Oct 12 12:00 PM"
         android:textAlignment="center"
         android:textColor="@color/white"
         android:textSize="20sp"
@@ -27,7 +32,7 @@
         android:layout_width="0dp"
         android:layout_height="50dp"
         android:layout_marginTop="8dp"
-        android:background="@drawable/toolbar_bg"
+        android:background="@drawable/green_toolbar_bg"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"
@@ -47,9 +52,10 @@
                 android:layout_width="20dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:clickable="true"
+                android:onClick="onMapClick"
                 android:padding="8dp"
                 android:scaleType="centerInside"
-                android:clickable="true"
                 app:srcCompat="@drawable/map" />
 
             <ImageView
@@ -57,9 +63,10 @@
                 android:layout_width="20dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:clickable="true"
+                android:onClick="resetLocation"
                 android:padding="8dp"
                 android:scaleType="centerInside"
-                android:clickable="true"
                 app:srcCompat="@drawable/target" />
 
             <ImageView
@@ -67,9 +74,10 @@
                 android:layout_width="20dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:clickable="true"
+                android:onClick="doShare"
                 android:padding="8dp"
                 android:scaleType="centerInside"
-                android:clickable="true"
                 app:srcCompat="@drawable/share" />
 
             <ImageView
@@ -113,7 +121,6 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
-        android:text="67°F"
         android:textColor="@color/white"
         android:textSize="56dp"
         android:textStyle="bold"
@@ -127,14 +134,12 @@
         android:layout_marginTop="12dp"
         android:layout_marginEnd="16dp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/iconBar"
-        app:srcCompat="@drawable/partly_cloudy_day" />
+        app:layout_constraintTop_toBottomOf="@+id/iconBar" />
 
     <TextView
         android:id="@+id/feelsLikeText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Feels Like 67°F"
         android:textColor="@color/white"
         android:textSize="18sp"
         android:textStyle="italic"
@@ -146,7 +151,6 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Partially Cloudy (68% clouds)"
         android:textAlignment="center"
         android:textColor="@color/white"
         android:textSize="20sp"
@@ -159,7 +163,6 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Winds: E at 8 mph gusting to 18 mph"
         android:textAlignment="center"
         android:textColor="@color/white"
         android:textSize="18sp"
@@ -172,7 +175,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Humidity: 60%"
+        android:text="Humidity:"
         android:textColor="@color/white"
         android:textSize="18sp"
         app:layout_constraintStart_toStartOf="@+id/feelsLikeText"
@@ -183,7 +186,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="UV Index: 4"
+        android:text="UV Index:"
         android:textColor="@color/white"
         android:textSize="18sp"
         app:layout_constraintStart_toStartOf="@+id/humidityText"
@@ -193,7 +196,7 @@
         android:id="@+id/visibilityText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Visibility: 9.9 mi"
+        android:text="Visibility:"
         android:textColor="@color/white"
         android:textSize="18sp"
         app:layout_constraintBaseline_toBaselineOf="@+id/uvIndexText"
@@ -223,7 +226,7 @@
         app:layout_constraintBottom_toTopOf="@+id/hourlyWeatherRecycler"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/uvIndexText" >
+        app:layout_constraintTop_toBottomOf="@+id/uvIndexText">
 
     </com.github.mikephil.charting.charts.LineChart>
 
@@ -232,7 +235,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
-        android:background="@drawable/recycler_hourly_weather_bg"
+        android:background="@drawable/green_recycler_hourly"
         app:layout_constraintBottom_toTopOf="@+id/sunriseText"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
@@ -243,7 +246,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
         android:layout_marginBottom="8dp"
-        android:text="Sunrise: 7:00 AM"
+        android:text="Sunrise:"
         android:textColor="@color/white"
         android:textSize="18sp"
         android:textStyle="italic"
@@ -256,7 +259,7 @@
         android:layout_height="wrap_content"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="8dp"
-        android:text="Sunset: 6:12 PM"
+        android:text="Sunset:"
         android:textColor="@color/white"
         android:textSize="18sp"
         android:textStyle="italic"
@@ -264,3 +267,4 @@
         app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.swiperefreshlayout.widget.SwipeRefreshLayout>

@@ -3,9 +3,11 @@ package com.example.visualcrossingweatherapp;
 import android.net.Uri;
 import android.util.Log;
 
+import com.android.volley.NoConnectionError;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
+import com.android.volley.TimeoutError;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
@@ -25,12 +27,12 @@ public class WeatherDownloader
     private static final String TAG = "WeatherDownloader";
     private static RequestQueue queue;
 
-    public static void getWeather(MainActivity activity, String location) {
+    public static void getWeather(MainActivity mainActivity, String location) {
         // Build the full URL
-        queue = Volley.newRequestQueue(activity);
+        queue = Volley.newRequestQueue(mainActivity);
 
-        String apiKey = activity.getString(R.string.apikey);
-        String BASE_URL = activity.getString(R.string.apilink);
+        String apiKey = mainActivity.getString(R.string.apikey);
+        String BASE_URL = mainActivity.getString(R.string.apilink);
         Uri builtUri = Uri.parse(BASE_URL)
                 .buildUpon()
                 .appendPath(location)
@@ -45,17 +47,47 @@ public class WeatherDownloader
                 new Response.Listener<JSONObject>() {
                     @Override
                     public void onResponse(JSONObject response) {
-                        Location location = LocationJsonParse(response);
+                        WeatherLocation weatherLocation = LocationJsonParse(response);
+                        CurrentConditions currentConditions = CurrentConditionsJsonParse(response);
+                        Alerts alerts = AlertsJsonParse(response);
                         ArrayList<DailyWeather> WeatherList = WeatherJsonParse(response);
-                        activity.setLocation(location);
-                        activity.updateWeather(WeatherList);
+                        mainActivity.setLocation(weatherLocation);
+                        mainActivity.setCurrentConditions(currentConditions);
+                        mainActivity.setAlerts(alerts);
+                        if (WeatherList == null || currentConditions == null || weatherLocation == null)
+                        {
+                            mainActivity.dataError();
+                        } else
+                        {
+                            mainActivity.setWeatherList(WeatherList);
+                        }
                     }
                 },
                 new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
-                        Log.d(TAG, "onErrorResponse: ArtworkDownloader, Error fetching artwork data " + error);
-                        activity.connectionError();
+                        Log.d(TAG, "onErrorResponse: WeatherDownloader, Error fetching artwork data " + error);
+
+                        if (error instanceof NoConnectionError || error instanceof TimeoutError)
+                        {
+                            mainActivity.connectionError();
+                        }
+                        else if (error.networkResponse != null)
+                        {
+                            int statusCode = error.networkResponse.statusCode;
+                            String responseBody = new String(error.networkResponse.data);
+
+                            if (statusCode == 400 && responseBody.contains("Bad API Request:Invalid location parameter value")) {
+                                Log.d(TAG, "onErrorResponse: Bad location parameter value");
+                                mainActivity.locationError(location);
+                            } else if (statusCode >= 400 && statusCode < 500) {
+                                Log.d(TAG, "onErrorResponse: Client error, status code: " + statusCode);
+                                mainActivity.dataError();
+                            } else if (statusCode >= 500) {
+                                Log.d(TAG, "onErrorResponse: Server error, status code: " + statusCode);
+                                mainActivity.dataError();
+                            }
+                        }
                     }
                 }
         );
@@ -63,7 +95,65 @@ public class WeatherDownloader
         queue.add(request);
     }
 
-    private static Location LocationJsonParse(JSONObject response)
+    private static Alerts AlertsJsonParse(JSONObject response)
+    {
+        String event, headline, id, description;
+        try
+        {
+            JSONObject alerts = response.getJSONObject("alerts");
+
+            event = alerts.getString("event");
+            headline = alerts.getString("headline");
+            id = alerts.getString("id");
+            description = alerts.getString("description");
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+            event = "";
+            headline = "";
+            id = "";
+            description = "";
+        }
+
+        return new Alerts(event, headline, id, description);
+    }
+
+    private static CurrentConditions CurrentConditionsJsonParse(JSONObject response)
+    {
+        String datetimeEpoch, conditions, icon;
+        int sunriseEpoch, sunsetEpoch, uvindex;
+        double temp, feelslike, humidity, windgust, windspeed, winddir, visibility, cloudcover;
+
+        try {
+            JSONObject currentConditions = response.getJSONObject("currentConditions");
+
+            datetimeEpoch = currentConditions.getString("datetimeEpoch");
+            conditions = currentConditions.getString("conditions");
+            icon = currentConditions.getString("icon");
+
+            temp = currentConditions.getDouble("temp");
+            feelslike = currentConditions.getDouble("feelslike");
+            humidity = currentConditions.getDouble("humidity");
+            windgust = currentConditions.getDouble("windgust");
+            windspeed = currentConditions.getDouble("windspeed");
+            winddir = currentConditions.getDouble("winddir");
+            visibility = currentConditions.getDouble("visibility");
+            cloudcover = currentConditions.getDouble("cloudcover");
+            uvindex = currentConditions.getInt("uvindex");
+
+            sunriseEpoch = currentConditions.getInt("sunriseEpoch");
+            sunsetEpoch = currentConditions.getInt("sunsetEpoch");
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return null;
+        }
+
+        return new CurrentConditions(datetimeEpoch, conditions, icon, temp, feelslike, humidity,
+                windgust, windspeed, winddir, visibility, cloudcover, uvindex, sunriseEpoch, sunsetEpoch);
+    }
+
+    private static WeatherLocation LocationJsonParse(JSONObject response)
     {
         double latititude, longitude;
         String resolvedAddress;
@@ -78,7 +168,7 @@ public class WeatherDownloader
             resolvedAddress = "No Network Connection,";
         }
 
-        return new Location(resolvedAddress, latititude, longitude);
+        return new WeatherLocation(resolvedAddress, latititude, longitude);
     }
 
     private static ArrayList<DailyWeather> WeatherJsonParse(JSONObject response) {
@@ -86,10 +176,10 @@ public class WeatherDownloader
         ArrayList<HourlyWeather> hourlyWeatherList = new ArrayList<>();
 
         try {
-            // Access the "days" array from the response
+            // access days array
             JSONArray daysArray = response.getJSONArray("days");
 
-            // Loop through each day object in the "days" array
+            // loop through all days
             for (int i = 0; i < daysArray.length(); i++) {
                 hourlyWeatherList.clear();
                 JSONObject dayData = daysArray.getJSONObject(i);
@@ -114,7 +204,6 @@ public class WeatherDownloader
                 String sunrise = dayData.getString("sunrise");
                 String sunset = dayData.getString("sunset");
 
-                // Create a DailyWeather object
                 DailyWeather dailyWeather = new DailyWeather(
                         datetimeEpoch, temp, feelslike, tempmax, tempmin, humidity, visibility,
                         windgust, windspeed, cloudcover, winddir, precipprob, uvIndex,
@@ -123,11 +212,9 @@ public class WeatherDownloader
 
                 JSONArray hoursArray = dayData.getJSONArray("hours");
 
-                // Loop through the hourly data
                 for (int j = 0; j < hoursArray.length(); j++) {
                     JSONObject hourData = hoursArray.getJSONObject(j);
 
-                    // Parse the relevant fields
                     String dailydatetime = hourData.getString("datetime");
                     int dailydatetimeEpoch = hourData.getInt("datetimeEpoch");
                     int dailytemp = (int)hourData.getDouble("temp");
@@ -135,7 +222,6 @@ public class WeatherDownloader
                     String dailyconditions = hourData.getString("conditions");
                     String dailyicon = hourData.getString("icon");
 
-                    // Create an HourlyWeather object and add it to the list
                     HourlyWeather hourlyWeather = new HourlyWeather(dailydatetime, dailydatetimeEpoch, dailytemp, dailyfeelslike, dailyconditions, dailyicon);
                     hourlyWeatherList.add(hourlyWeather);
                 }

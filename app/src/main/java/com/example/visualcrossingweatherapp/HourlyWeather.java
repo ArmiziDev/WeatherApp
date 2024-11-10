@@ -1,8 +1,6 @@
 package com.example.visualcrossingweatherapp;
 
 
-import android.widget.ImageView;
-
 import java.io.Serializable;
 
 public class HourlyWeather implements Serializable

@@ -2,6 +2,7 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/green_bg">
@@ -10,7 +11,7 @@
         android:id="@+id/dayDateText"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="@drawable/toolbar_bg"
+        android:background="@drawable/green_toolbar_bg"
         android:text=" Saturday, 10/12"
         android:textColor="@color/white"
         android:textSize="20sp"

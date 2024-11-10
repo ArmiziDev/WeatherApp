@@ -11,18 +11,18 @@ public class DateFormatter {
         long epochMillis = datetimeEpoch * 1000L;
         Date date = new Date(epochMillis);
 
-        // Format the date
+        // format
         SimpleDateFormat dateFormat = new SimpleDateFormat(format, Locale.getDefault());
         return dateFormat.format(date);
     }
 
-    public static String formatTime(long datetimeEpoch) {
+    public static String formatTime(long datetimeEpoch, String format) {
         // seconds to milliseconds
         long epochMillis = datetimeEpoch * 1000L;
         Date date = new Date(epochMillis);
 
-        // Format the time
-        SimpleDateFormat timeFormat = new SimpleDateFormat("h:mm a", Locale.getDefault());
+        // format
+        SimpleDateFormat timeFormat = new SimpleDateFormat(format, Locale.getDefault());
         return timeFormat.format(date);
     }
 
@@ -31,7 +31,7 @@ public class DateFormatter {
         long currentEpoch = System.currentTimeMillis();
         Date date = new Date(currentEpoch);
 
-        // formattin gtime
+        // format
         SimpleDateFormat dateFormat = new SimpleDateFormat(format, Locale.getDefault());
         return dateFormat.format(date);
     }
