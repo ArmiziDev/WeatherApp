@@ -25,11 +25,10 @@ public class WeatherDownloader
     * All API Processes are handled through the WeatherDownloader
     * */
     private static final String TAG = "WeatherDownloader";
-    private static RequestQueue queue;
 
     public static void getWeather(MainActivity mainActivity, String location) {
         // Build the full URL
-        queue = Volley.newRequestQueue(mainActivity);
+        RequestQueue queue = Volley.newRequestQueue(mainActivity);
 
         String apiKey = mainActivity.getString(R.string.apikey);
         String BASE_URL = mainActivity.getString(R.string.apilink);
@@ -70,7 +69,7 @@ public class WeatherDownloader
 
                         if (error instanceof NoConnectionError || error instanceof TimeoutError)
                         {
-                            mainActivity.connectionError();
+                            mainActivity.connectionError(false);
                         }
                         else if (error.networkResponse != null)
                         {
@@ -80,11 +79,8 @@ public class WeatherDownloader
                             if (statusCode == 400 && responseBody.contains("Bad API Request:Invalid location parameter value")) {
                                 Log.d(TAG, "onErrorResponse: Bad location parameter value");
                                 mainActivity.locationError(location);
-                            } else if (statusCode >= 400 && statusCode < 500) {
+                            } else {
                                 Log.d(TAG, "onErrorResponse: Client error, status code: " + statusCode);
-                                mainActivity.dataError();
-                            } else if (statusCode >= 500) {
-                                Log.d(TAG, "onErrorResponse: Server error, status code: " + statusCode);
                                 mainActivity.dataError();
                             }
                         }

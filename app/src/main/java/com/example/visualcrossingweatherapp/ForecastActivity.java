@@ -51,6 +51,9 @@ public class ForecastActivity extends AppCompatActivity
         }
 
         dailyWeatherList = (ArrayList<DailyWeather>) getIntent().getSerializableExtra("DailyWeatherList");
+        if (dailyWeatherList == null) {
+            dailyWeatherList = new ArrayList<>();
+        }
         unit_f = getIntent().getBooleanExtra("unit_f", true);
         String city = getIntent().getStringExtra("City");
         binding.titleText.setText(city + " 15-Day Forecast");

@@ -38,6 +38,8 @@ public class HourlyWeatherAdapter extends RecyclerView.Adapter<HourlyWeatherView
     public void onBindViewHolder(@NonNull HourlyWeatherViewHolder holder, int position) {
         HourlyWeather weather = hourlyWeatherList.get(position);
 
+        holder.dateText.setText(weather.timestamp);
+
         String formattedTime = DateFormatter.formatTime(weather.datetimeEpoch, "h:mm a");
         holder.timeText.setText(formattedTime);
 

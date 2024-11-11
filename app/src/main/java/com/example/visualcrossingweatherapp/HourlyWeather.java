@@ -5,6 +5,7 @@ import java.io.Serializable;
 
 public class HourlyWeather implements Serializable
 {
+    public String timestamp = "Today";
     public String datetime;
     public int datetimeEpoch;
     public double temp_f;

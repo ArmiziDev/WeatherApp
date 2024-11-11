@@ -2,6 +2,8 @@ package com.example.visualcrossingweatherapp;
 
 import android.content.Intent;
 import android.location.Address;
+import android.net.ConnectivityManager;
+import android.net.Network;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.InputType;
@@ -9,7 +11,6 @@ import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.EditText;
-import android.location.Location;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
@@ -34,9 +35,12 @@ public class MainActivity extends AppCompatActivity {
     TreeMap<String, Double> timeTempValues = new TreeMap<>();
     private final ArrayList<HourlyWeather> hourlyWeatherList = new ArrayList<>();
     private final ArrayList<DailyWeather> dailyWeatherList = new ArrayList<>();
+    private final ArrayList<HourlyWeather> hourlyWeatherListChart = new ArrayList<>();
     private HourlyWeatherAdapter hourlyWeatherAdapter;
     private RecyclerView recyclerView;
     private ChartMaker chartMaker;
+
+    private ConnectivityManager connectivityManager;
 
     private WeatherLocation weatherLocation;
     private Alerts alerts;
@@ -70,6 +74,25 @@ public class MainActivity extends AppCompatActivity {
 
         chartMaker = new ChartMaker(this, binding);
 
+        binding.swipeRefresh.setOnRefreshListener(this::refreshWeather);
+
+        connectivityManager = getSystemService(ConnectivityManager.class);
+
+        checkNet();
+    }
+
+    public void checkNet() {
+        Network currentNetwork = connectivityManager.getActiveNetwork();
+
+        if (currentNetwork == null) {
+            connectionError(true);
+        } else {
+            onConnectionSuccess();
+        }
+    }
+
+    private void onConnectionSuccess()
+    {
         // Request the current location
         LocationHelper.getCurrentLocation(this, new LocationHelper.LocationCallback() {
             @Override
@@ -85,8 +108,6 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(TAG, "onFailure: " + errorMessage);
             }
         });
-
-        binding.swipeRefresh.setOnRefreshListener(this::refreshWeather);
     }
 
     public void refreshWeather()
@@ -118,25 +139,36 @@ public class MainActivity extends AppCompatActivity {
         binding.swipeRefresh.setRefreshing(false); // This stops the busy-circle
         if (!weatherList.isEmpty())
         {
-            updateHourlyWeather(weatherList.get(0).hourlyWeatherList);
+            updateHourlyWeather(weatherList.get(0).hourlyWeatherList, weatherList.get(1).hourlyWeatherList);
             updateDailyWeather(weatherList);
         }
     }
 
-    public void updateHourlyWeather(ArrayList<HourlyWeather> hourlyWeather)
+    public void updateHourlyWeather(ArrayList<HourlyWeather> hourlyWeatherToday, ArrayList<HourlyWeather> hourlyWeatherTomorrow)
     {
         this.hourlyWeatherList.clear();
+
+        this.hourlyWeatherListChart.clear();
+        this.hourlyWeatherListChart.addAll(hourlyWeatherToday);
+
         long currentEpoch = System.currentTimeMillis() / 1000;
-        for (HourlyWeather weather : hourlyWeather) {
+        for (HourlyWeather weather : hourlyWeatherToday) {
             if (currentEpoch < weather.datetimeEpoch)
             {
                 this.hourlyWeatherList.add(weather);
             }
         }
+        for (int i = 0; i < 24 - this.hourlyWeatherList.size(); i ++)
+        {
+            HourlyWeather weather = hourlyWeatherTomorrow.get(i);
+            weather.timestamp = "Tomorrow";
+            this.hourlyWeatherList.add(weather);
+        }
         hourlyWeatherAdapter.notifyDataSetChanged();
 
-        timeTempValues = createTimeTempValues(hourlyWeather);
+        timeTempValues = createTimeTempValues(hourlyWeatherListChart);
         chartMaker.makeChart(timeTempValues, System.currentTimeMillis());
+
         binding.loadingHourlyWeather.setVisibility(View.INVISIBLE);
     }
 
@@ -166,12 +198,14 @@ public class MainActivity extends AppCompatActivity {
                     currentConditions.conditions + " (" + currentConditions.cloudcover + "% clouds)");
             binding.humidityText.setText("Humidity: " + currentConditions.humidity + "%");
             binding.uvIndexText.setText("UV Index: " + currentConditions.uvindex);
-            binding.visibilityText.setText("Visibility: " + currentConditions.visibility + " mi");
+            String visibility = (unit_f) ? "Visibility: " + currentConditions.visibility + " mi" : "Visibility: " + String.format("%.2f", currentConditions.visibility * 1.609) + " km";
+            binding.visibilityText.setText(visibility);
             String windDirection = getWindDirection((int)currentConditions.winddir);
-            binding.windDirectionText.setText(
-                    "Winds: " + windDirection + " at " + currentConditions.windspeed +
-                            " mph gusting to " + currentConditions.windgust + " mph"
-            );
+            String winds = (unit_f) ? "Winds: " + windDirection + " at " + currentConditions.windspeed +
+                    " mph gusting to " + currentConditions.windgust + " mph" :
+                    "Winds: " + windDirection + " at " + String.format("%.1f",currentConditions.windspeed * 1.609) +
+                            " kph gusting to " + String.format("%.1f",currentConditions.windgust * 1.609) + " kph";
+            binding.windDirectionText.setText(winds);
 
             binding.sunriseText.setText("Sunrise: " + DateFormatter.formatTime(currentConditions.sunriseEpoch, "h:mm a"));
             binding.sunsetText.setText("Sunset: " + DateFormatter.formatTime(currentConditions.sunsetEpoch, "h:mm a"));
@@ -336,6 +370,17 @@ public class MainActivity extends AppCompatActivity {
             binding.temperatureText.setText(temperature);
             String feelslike = (unit_f) ? String.format("%d°F", (int)currentConditions.feelslike_f) : String.format("%d°C", (int)currentConditions.feelslike_c);
             binding.feelsLikeText.setText("Feels Like " + feelslike);
+            String visibility = (unit_f) ? "Visibility: " + currentConditions.visibility + " mi" : "Visibility: " + String.format("%.1f",currentConditions.visibility * 1.609) + " km";
+            binding.visibilityText.setText(visibility);
+            String windDirection = getWindDirection((int)currentConditions.winddir);
+            String winds = (unit_f) ? "Winds: " + windDirection + " at " + currentConditions.windspeed +
+                    " mph gusting to " + currentConditions.windgust + " mph" :
+                    "Winds: " + windDirection + " at " + String.format("%.1f",currentConditions.windspeed * 1.609) +
+                            " kph gusting to " + String.format("%.1f",currentConditions.windgust * 1.609) + " kph";
+            binding.windDirectionText.setText(winds);
+
+            timeTempValues = createTimeTempValues(hourlyWeatherListChart);
+            chartMaker.makeChart(timeTempValues, System.currentTimeMillis());
         }
     }
 
@@ -344,20 +389,23 @@ public class MainActivity extends AppCompatActivity {
         for (int i = 0; i < hourlyWeather.size(); i++)
         {
             HourlyWeather current_weather = hourlyWeather.get(i);
-            timeTempValues.put(current_weather.datetime, current_weather.temp_f);
+            double temp = (unit_f) ? current_weather.temp_f : current_weather.temp_c;
+            timeTempValues.put(current_weather.datetime, temp);
         }
         return timeTempValues;
     }
 
-    public void connectionError() {
+    public void connectionError(boolean checkConnection) {
         new AlertDialog.Builder(this)
                 .setTitle("No Internet Connection")
                 .setMessage("This app requires an internet connection to function properly. Please check your connection and try again.")
-                .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
+                .setPositiveButton("OK", (dialog, which) -> {if (checkConnection) {checkNet();} else {dialog.dismiss();}})
                 .setIcon(android.R.drawable.ic_dialog_alert)
                 .show();
+
         binding.loadingHourlyWeather.setVisibility(View.INVISIBLE);
     }
+
 
     public void locationError(String location) {
         new AlertDialog.Builder(this)
@@ -391,7 +439,9 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(String errorMessage) {
+
                 Log.d(TAG, "onFailure: " + errorMessage);
+                makeErrorAlert("Could not find your location.");
             }
         });
     }
